@@ -1,0 +1,584 @@
+#!/bin/bash
+###############################################################
+#Author: Corey Douglas
+###############################################################
+echo "########################################"
+echo "#                                      #"
+echo "#          Ubuntu 20.04                #"
+echo "#         STIG FIX SELECTION           #"
+echo "#                                      #"
+echo "#                                      #"
+echo "########################################"
+echo "#               ENTER                  #"
+echo "#        ONE OF THE FOLLOWING          #"
+echo "#  CAT1         CAT2          CAT3     #" 
+echo "#        ALL            RUNALL         #"
+echo "#             README                   #"
+read -p "          SELECTION: " CAT              
+	if [[ $CAT == "CAT1" ]]; then
+		echo " 1.1 Vul ID: V-238215: Rule Title: The Ubuntu operating system must use SSH to protect the confidentiality and integrity of transmitted information."
+		echo " 1.2 Vul ID: V-238326: Rule Title: The Ubuntu operating system must not have the telnet package installed."
+		echo " 1.3 Vul ID: V-238206: Rule Title: The Ubuntu operating system must ensure only users who need access to security functions are part of sudo group."
+		read -p "Would you like to run any of the fixes? (example: 1.1): " run
+
+	elif [[ $CAT == "CAT2" ]]; then
+                echo " 2.1 Vul ID: V-238200: Rule Title: The Ubuntu operating system must allow users to directly initiate a session lock for all connection types. " 
+		echo " 2.2 Vul ID: V-238227: Rule Title: The Ubuntu operating system must prevent the use of dictionary words for passwords."
+		read -p "Would you like to run any of the fixes? (example: 1.1): " run
+	elif [[ $CAT == "CAT3" ]]; then
+                echo " NO CAT3 FIXES AVALIABLE"
+	elif [[ $CAT == "ALL" ]]; then
+                echo " CAT1"
+		echo " 1.1 Vul ID: V-238215: Rule Title: The Ubuntu operating system must use SSH to protect the confidentiality and integrity of transmitted information."
+                echo " 1.2 Vul ID: V-238326: Rule Title: The Ubuntu operating system must not have the telnet package installed."
+                echo " 1.3 Vul ID: V-238206: Rule Title: The Ubuntu operating system must ensure only users who need access to security functions are part of sudo group."
+		echo " CAT2"
+		echo " 2.1 Vul ID: V-238200: Rule Title: The Ubuntu operating system must allow users to directly initiate a session lock for all connection types. " 
+                echo " 2.2 Vul ID: V-238227: Rule Title: The Ubuntu operating system must prevent the use of dictionary words for passwords."
+		echo "CAT3"
+		echo " NO CAT3 FIXES AVALIABLE"
+		read -p "Would you like to run any of the fixes? (example: 1.1): " run
+	elif  [[ $CAT == "RUNALL" ]]; then
+		run=runall
+		echo "Running all Fixes"
+	elif [[ $CAT == "README" ]]; then
+ 
+		echo " ######################################################################"
+		echo " #README "
+		echo " #Author: Corey Douglas"
+		echo " #NAME: STIG FIX SELECTION (STIG_Select)"
+		echo " #Course: IS480"
+		echo " #"
+		echo " #"
+		echo " #Purpose: This Script compiles multiple STIG compliance scripts into"
+		echo " # one with ability to choose specfic a STIG or run all at once."
+		echo " # The goal is to be more user friendly while giving options for systems"
+		echo " # that do not require nor want full compliance."
+		echo " ######################################################################"
+		echo " #######################   USAGES  ####################################"
+		echo " # Each STIG fix will be listed by CAT category."
+		echo " # With an explanation of its utility and purpose."
+		echo " #######################   CAT1    ####################################"
+		echo " # The 1.1 Fix will test to see if ssh services are installed. If not installed the ssh services will be installed."
+		echo " # Options for activation of services and start on reboot are also given."
+		echo " #"
+		echo " # The 1.2 Fix will check for the installation of telnet. If telnet is found it will be removed upon confirmation."
+		echo " #"
+		echo " # The 1.3 Fix will list the members of the sudo group. And prompt the admin to remove users who should not have sudo privileges."
+		echo " ######################    CAT2    ####################################"
+		echo " #"
+		echo " #The 2.1 Fix will check for the installation of vlock and install if neccessary."
+		echo " #This will allow a user to activate a temporary session lock when leaving the system physically."
+		echo " #"
+		echo " #The 2.2 Fix will check if the dictcheck parameter is set to unable the usage of dictionary words in user passwords." 
+		echo " # If the parameter is set correctly but commented out the comment will be removed."
+		echo " # If the parameter is uncorrectly set the script will correct the parameter as (dictcheck = 1)."
+		echo " ######################    CAT3    ####################################"
+		echo " #"
+		echo " #                     NO CAT3 FIXES AVALIABLE"
+		echo " #"
+		echo " ######################################################################"
+
+	else
+		echo "Invalid Input"
+	fi
+
+if [[ $run == "1.1" ]]; then
+#############################################
+#             STIG: 238215
+#############################################
+readarray -t openssh < <( sudo dpkg -l | grep openssh |cut -d ' ' -f 1,3 )
+ 
+client=${openssh[0]}
+server=${openssh[1]}   
+sftp=${openssh[2]} 
+
+if [[ "$client" == "ii openssh-client" ]]; then
+    echo "openssh-client is installed"
+        install_ssh=false
+elif [[ "$client" == "rc openssh-client" ]]; then
+    echo "openssh-client is not installed"
+        install_ssh=true
+else 
+    echo "openssh-client is not installed"
+         install_ssh=true
+fi
+
+if [[ "$server" == "ii openssh-server" ]]; then
+    echo "openssh-server is installed"
+        install_ssh=false
+elif [[ "$server" == "rc openssh-server" ]]; then
+    echo "openssh-server is not installed"
+         install_ssh=true
+else 
+    echo "openssh-server is not installed"
+     install_ssh=true
+fi
+
+if [[ "$sftp" == "ii openssh-sftp-server" ]]; then
+    echo "openssh-sftp-server is installed"
+        install_ssh=false
+elif [[ "$sftp" == "rc openssh-sftp-server" ]]; then
+    echo "openssh-sftp-server is not installed"
+     install_ssh=true
+else 
+    echo "openssh-sftp-server is not installed"
+fi
+
+if [ "$install_ssh" == false ]; then
+activity=$(sudo systemctl is-active ssh)
+loaded=$(sudo systemctl is-enabled ssh)
+if [[ "$activity" == "active" ]]; then
+             echo "ssh services are active"
+else 
+        read -p "ssh services are inactive. Would you like to activate(y/n)?: " answer3
+        if [[ "$answer3" == [yY] ]] || [[ "$answer3" == yes ]] || [[ "$answer3" == "Y" ]] || [[ "$answer3" == "y" ]]; then
+          sudo systemctl start sshd.service
+          echo "ssh services are now active"
+        elif [[ "$answer3" == [nN] ]] || [[ "$answer3" == no ]] || [[ "$answer3" == "N" ]] || [[ "$answer3" == "n" ]]; then
+                    echo "Program Closing."
+        else        
+            echo "Invalid input. Program Closing."
+        fi
+fi
+if [[ "$loaded" == "enabled" ]]; then
+             echo "ssh services are loaded"
+elif [[ "$loaded" == "disabled" ]]; then
+        echo "ssh services are not loaded"   
+       read -p "Would you like to enable the ssh service to start automatically on reboot(y/n): " answer4
+       if  [[ "$answer4" == [yY] ]] || [[ "$answer4" == yes ]] || [[ "$answer4" == "Y" ]] || [[ "$answer4" == "y" ]]; then
+        sudo systemctl enable sshd.service 
+        echo "ssh service will now automatically show up on reboot."
+       elif [[ "$answer4" == [nN] ]] || [[ "$answer4" == no ]] || [[ "$answer4" == "N" ]] || [[ "$answer4" == "n" ]]; then
+        echo "Program Closing."
+       else
+        echo "Invalid Input. Program Closing."
+       fi
+else
+     echo "Error. Program Closing."
+
+fi
+
+elif [ "$install_ssh" == true ]; then
+        read -p  "Would you like to install ssh (y/n)?: " answer
+        if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+        echo "Installing ssh services"
+         sudo apt install ssh
+        loaded=$(sudo systemctl is-enabled ssh)
+                if [[ "$loaded" == "enabled" ]]; then
+               echo "ssh services are loaded"
+               elif [[ "$loaded" == "disabled" ]]; then
+               echo "ssh services are not loaded"  
+                read -p "Would you like to enable the ssh service to start automatically on reboot(y/n)?: " answer2
+                        if  [[ "$answer2" == [yY] ]] || [[ "$answer2" == yes ]] || [[ "$answer2" == "Y" ]] || [[ "$answer2" == "y" ]]; then
+                        sudo systemctl enable sshd.service 
+                        echo "ssh service will now automatically show up on reboot."
+                        elif [[ "$answer2" == [nN] ]] || [[ "$answer2" == no ]] || [[ "$answer2" == "N" ]] || [[ "$answer2" == "n" ]]; then
+                        echo "Program Closing."
+                        else
+                        echo "Invalid input. Program Closing."
+                        fi
+                fi
+                activity=$(sudo systemctl is-active ssh)
+                if [[ "$activity" == "active" ]]; then
+                        echo "ssh services are active."   
+                        elif [["$activity" == "inactive" ]]; then
+                                read -p "ssh services are inactive. Would you like to activate(y/n)?: " answer3
+                                if [[ "$answer3" == [yY] ]] || [[ "$answer3" == yes ]] || [[ "$answer3" == "Y" ]] || [[ "$answer3" == "y" ]]; then
+                                sudo systemctl start sshd.service
+                                echo "ssh services are now active"
+                                elif [[ "$answer3" == [nN] ]] || [[ "$answer3" == no ]] || [[ "$answer3" == "N" ]] || [[ "$answer3" == "n" ]]; then
+                                echo "Program Closing."
+                                else
+                                echo "Invalid input. Program Closing."
+                                fi
+
+                fi
+
+
+
+        elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+        else
+        echo "Invalid input. Program Closing."
+      fi
+
+fi
+
+elif [[ $run == "1.2" ]]; then
+#######################################
+	#STIG : 238326
+########################################
+echo "Checking for the telnet package"
+
+telnet=$(dpkg -l | grep -i telnetd| cut -d " " -f 1)
+
+if [[  "$telnet" == ii ]]; then
+    read -p "Would you like to remove telnet (y/n): " answer
+    if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+        sudo apt-get remove telnetd 
+        sudo apt-get remove telnet
+        echo "Removal completed."
+    elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+    else
+        echo "Invalid input. Program Closing."
+    fi
+
+elif [[  "$telnet" == rc ]]; then
+        echo "telnet is not installed"
+else
+    echo "Program Closing."
+fi
+
+elif [[ $run == "1.3" ]]; then
+########################################
+	#STIG: 238206
+########################################
+
+echo "Checking the members of the sudo group"
+echo -n "Sudo Group Members: "  
+grep sudo /etc/group | cut -d ":" -f 4- 
+
+read -p "Would you like to remove a member from the group (y/n): " rem
+if [[ "$rem" == [yY] ]] || [[ "$rem" == yes ]] || [[ "$rem" == YES ]]; then
+        read -p "What user would you like to remove: " user
+        sudo gpasswd -d $user sudo
+else
+        echo "Closing Program"
+fi
+
+elif [[ $run == "2.1" ]]; then
+###########################################	
+	#STIG : 238200
+###########################################
+
+echo "Checking for the vlock package"
+
+vlock=$(dpkg -l | grep vlock | cut -d " " -f 1)
+
+if [[  "$vlock" == ii ]]; then
+    echo "vlock is installed"
+
+
+elif [[  "$telnet" == rc ]]; then
+        echo "vlock is not installed"
+        read -p "Would you like to install vlock (y/n): " answer
+    if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then 
+        sudo apt-get install vlock
+        echo "Installation completed."
+    elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+    else
+        echo "Invalid Input"
+
+    fi
+
+else
+       echo "vlock is not installed"
+        read -p "Would you like to install vlock (y/n): " answer
+    if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+        sudo apt-get install vlock
+        echo "Installation completed."
+    elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+    else
+        echo "Invalid Input"
+
+    fi
+fi
+
+elif [[ $run == "2.2" ]]; then
+######################################
+#	STIG: 238227
+#######################################
+
+dict=$(grep dictcheck /etc/security/pwquality.conf|cut -d ' ' -f 2-4)
+check=$(grep dictcheck /etc/security/pwquality.conf|cut -d ' ' -f 1,4)
+linenumber=$(grep -n dictcheck /etc/security/pwquality.conf|cut -d ':' -f 1)
+check2=$(true)
+
+if  [[ $check == '# 1' ]]; then
+
+        echo "The dictcheck parameter is commented out" 
+        echo "Dictionary words are allowed in user passwords."
+
+        read -p "Would you like to undo the comment(y/n)?: " answer
+
+        if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+                 sudo sed -i "${linenumber}s/^#//" /etc/security/pwquality.conf 
+                echo "dictcheck parameter is now not commented out."
+                check2=false
+        elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+                echo "Program Closing."
+        else
+                echo "Invalid input. Program Closing."
+        fi       
+
+fi
+
+
+if [[ $dict == 1 ]]; then
+        echo "The usage of dictionary words in user passwords is being prevented."
+elif [[ $check2 == true ]]; then
+        echo "Dictionary words are allowed in user passwords."
+
+        read -p "Would you like to prevent the usage of dictionary words in user passwords(y/n)?: " answer
+
+        if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+                sudo sed -i "${linenumber}s/.*/  dictcheck = 1/" /etc/security/pwquality.conf 
+
+                echo "Dictionary word usage prevented."
+        elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+                echo "Program Closing."
+        else
+                echo "Invalid input. Program Closing."
+        fi
+fi
+fi
+
+if [[ $run == "runall" ]]; then
+	#1.1
+readarray -t openssh < <( sudo dpkg -l | grep openssh |cut -d ' ' -f 1,3 )
+ 
+client=${openssh[0]}
+server=${openssh[1]}   
+sftp=${openssh[2]} 
+
+if [[ "$client" == "ii openssh-client" ]]; then
+    echo "openssh-client is installed"
+        install_ssh=false
+elif [[ "$client" == "rc openssh-client" ]]; then
+    echo "openssh-client is not installed"
+        install_ssh=true
+else 
+    echo "openssh-client is not installed"
+         install_ssh=true
+fi
+
+if [[ "$server" == "ii openssh-server" ]]; then
+    echo "openssh-server is installed"
+        install_ssh=false
+elif [[ "$server" == "rc openssh-server" ]]; then
+    echo "openssh-server is not installed"
+         install_ssh=true
+else 
+    echo "openssh-server is not installed"
+     install_ssh=true
+fi
+
+if [[ "$sftp" == "ii openssh-sftp-server" ]]; then
+    echo "openssh-sftp-server is installed"
+        install_ssh=false
+elif [[ "$sftp" == "rc openssh-sftp-server" ]]; then
+    echo "openssh-sftp-server is not installed"
+     install_ssh=true
+else 
+    echo "openssh-sftp-server is not installed"
+fi
+
+if [ "$install_ssh" == false ]; then
+activity=$(sudo systemctl is-active ssh)
+loaded=$(sudo systemctl is-enabled ssh)
+if [[ "$activity" == "active" ]]; then
+             echo "ssh services are active"
+else 
+        read -p "ssh services are inactive. Would you like to activate(y/n)?: " answer3
+        if [[ "$answer3" == [yY] ]] || [[ "$answer3" == yes ]] || [[ "$answer3" == "Y" ]] || [[ "$answer3" == "y" ]]; then
+          sudo systemctl start sshd.service
+          echo "ssh services are now active"
+        elif [[ "$answer3" == [nN] ]] || [[ "$answer3" == no ]] || [[ "$answer3" == "N" ]] || [[ "$answer3" == "n" ]]; then
+                    echo "Program Closing."
+        else        
+            echo "Invalid input. Program Closing."
+        fi
+fi
+if [[ "$loaded" == "enabled" ]]; then
+             echo "ssh services are loaded"
+elif [[ "$loaded" == "disabled" ]]; then
+        echo "ssh services are not loaded"   
+       read -p "Would you like to enable the ssh service to start automatically on reboot(y/n): " answer4
+       if  [[ "$answer4" == [yY] ]] || [[ "$answer4" == yes ]] || [[ "$answer4" == "Y" ]] || [[ "$answer4" == "y" ]]; then
+        sudo systemctl enable sshd.service 
+        echo "ssh service will now automatically show up on reboot."
+       elif [[ "$answer4" == [nN] ]] || [[ "$answer4" == no ]] || [[ "$answer4" == "N" ]] || [[ "$answer4" == "n" ]]; then
+        echo "Program Closing."
+       else
+        echo "Invalid Input. Program Closing."
+       fi
+else
+     echo "Error. Program Closing."
+
+fi
+
+elif [ "$install_ssh" == true ]; then
+        read -p  "Would you like to install ssh (y/n)?: " answer
+        if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+        echo "Installing ssh services"
+         sudo apt install ssh
+        loaded=$(sudo systemctl is-enabled ssh)
+                if [[ "$loaded" == "enabled" ]]; then
+               echo "ssh services are loaded"
+               elif [[ "$loaded" == "disabled" ]]; then
+               echo "ssh services are not loaded"  
+                read -p "Would you like to enable the ssh service to start automatically on reboot(y/n)?: " answer2
+                        if  [[ "$answer2" == [yY] ]] || [[ "$answer2" == yes ]] || [[ "$answer2" == "Y" ]] || [[ "$answer2" == "y" ]]; then
+                        sudo systemctl enable sshd.service 
+                        echo "ssh service will now automatically show up on reboot."
+                        elif [[ "$answer2" == [nN] ]] || [[ "$answer2" == no ]] || [[ "$answer2" == "N" ]] || [[ "$answer2" == "n" ]]; then
+                        echo "Program Closing."
+                        else
+                        echo "Invalid input. Program Closing."
+                        fi
+                fi
+                activity=$(sudo systemctl is-active ssh)
+                if [[ "$activity" == "active" ]]; then
+                        echo "ssh services are active."   
+                        elif [["$activity" == "inactive" ]]; then
+                                read -p "ssh services are inactive. Would you like to activate(y/n)?: " answer3
+                                if [[ "$answer3" == [yY] ]] || [[ "$answer3" == yes ]] || [[ "$answer3" == "Y" ]] || [[ "$answer3" == "y" ]]; then
+                                sudo systemctl start sshd.service
+                                echo "ssh services are now active"
+                                elif [[ "$answer3" == [nN] ]] || [[ "$answer3" == no ]] || [[ "$answer3" == "N" ]] || [[ "$answer3" == "n" ]]; then
+                                echo "Program Closing."
+                                else
+                                echo "Invalid input. Program Closing."
+                                fi
+
+                fi
+
+
+
+        elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+        else
+        echo "Invalid input. Program Closing."
+      fi
+
+fi
+
+# 1.2
+echo "Checking for the telnet package"
+
+telnet=$(dpkg -l | grep -i telnetd| cut -d " " -f 1)
+
+if [[  "$telnet" == ii ]]; then
+    read -p "Would you like to remove telnet (y/n): " answer
+    if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+        sudo apt-get remove telnetd 
+        sudo apt-get remove telnet
+        echo "Removal completed."
+    elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+    else
+        echo "Invalid input. Program Closing."
+    fi
+
+elif [[  "$telnet" == rc ]]; then
+        echo "telnet is not installed"
+else
+    echo "Program Closing."
+fi
+
+#1.3
+
+
+echo "Checking the members of the sudo group"
+echo -n "Sudo Group Members: "  
+grep sudo /etc/group | cut -d ":" -f 4- 
+
+read -p "Would you like to remove a member from the group (y/n): " rem
+if [[ "$rem" == [yY] ]] || [[ "$rem" == yes ]] || [[ "$rem" == YES ]]; then
+        read -p "What user would you like to remove: " user
+        sudo gpasswd -d $user sudo
+else
+        echo "Closing Program"
+fi
+
+
+#2.1
+
+echo "Checking for the vlock package"
+
+vlock=$(dpkg -l | grep vlock | cut -d " " -f 1)
+
+if [[  "$vlock" == ii ]]; then
+    echo "vlock is installed"
+
+
+elif [[  "$telnet" == rc ]]; then
+        echo "vlock is not installed"
+        read -p "Would you like to install vlock (y/n): " answer
+    if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then 
+        sudo apt-get install vlock
+        echo "Installation completed."
+    elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+    else
+        echo "Invalid Input"
+
+    fi
+
+else
+       echo "vlock is not installed"
+        read -p "Would you like to install vlock (y/n): " answer
+    if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+        sudo apt-get install vlock
+        echo "Installation completed."
+    elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+        echo "Program Closing."
+    else
+        echo "Invalid Input"
+
+    fi
+fi
+
+#2.2
+
+dict=$(grep dictcheck /etc/security/pwquality.conf|cut -d ' ' -f 2-4)
+check=$(grep dictcheck /etc/security/pwquality.conf|cut -d ' ' -f 1,4)
+linenumber=$(grep -n dictcheck /etc/security/pwquality.conf|cut -d ':' -f 1)
+check2=$(true)
+
+if  [[ $check == '# 1' ]]; then
+
+        echo "The dictcheck parameter is commented out" 
+        echo "Dictionary words are allowed in user passwords."
+
+        read -p "Would you like to undo the comment(y/n)?: " answer
+
+        if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+                 sudo sed -i "${linenumber}s/^#//" /etc/security/pwquality.conf 
+                echo "dictcheck parameter is now not commented out."
+                check2=false
+        elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+                echo "Program Closing."
+        else
+                echo "Invalid input. Program Closing."
+        fi       
+
+fi
+
+
+if [[ $dict == 1 ]]; then
+        echo "The usage of dictionary words in user passwords is being prevented."
+elif [[ $check2 == true ]]; then
+        echo "Dictionary words are allowed in user passwords."
+
+        read -p "Would you like to prevent the usage of dictionary words in user passwords(y/n)?: " answer
+
+        if [[ "$answer" == [yY] ]] || [[ "$answer" == yes ]] || [[ "$answer" == "Y" ]] || [[ "$answer" == "y" ]]; then
+                sudo sed -i "${linenumber}s/.*/  dictcheck = 1/" /etc/security/pwquality.conf 
+
+                echo "Dictionary word usage prevented."
+        elif [[ "$answer" == [nN] ]] || [[ "$answer" == no ]] || [[ "$answer" == "N" ]] || [[ "$answer" == "n" ]]; then
+                echo "Program Closing."
+        else
+                echo "Invalid input. Program Closing."
+        fi
+fi
+	
+
+
+
+fi
